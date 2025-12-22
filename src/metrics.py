@@ -27,18 +27,87 @@ class DeepMathMetrics:
             text = new_text
         return text
     
+    # def _safe_parse(self, text):
+    #     """Parse text thành biểu thức Sympy một cách an toàn"""
+    #     try:
+    #         text = self._clean_latex(text)
+    #         # Xử lý dấu bằng để tạo phương trình
+    #         if "=" in text:
+    #             parts = text.split("=")
+    #             if len(parts) == 2:
+    #                 lhs = parse_expr(parts[0], transformations=self.transformations)
+    #                 rhs = parse_expr(parts[1], transformations=self.transformations)
+    #                 return Eq(lhs, rhs)
+    #         return parse_expr(text, transformations=self.transformations)
+    #     except:
+    #         return None
+    def _extract_math_from_text(self, text):
+        """
+        Hàm phụ trợ: Dùng Regex để tìm toán trong câu văn tiếng Anh/Việt.
+        Ưu tiên:
+        1. Dạng phương trình: x = 29, 2x = 58
+        2. Dạng số cuối cùng trong câu: ... is 29.
+        """
+        text = str(text).strip()
+        
+        # Pattern 1: Tìm phương trình (VD: x = 29, val = 1.5)
+        # Regex này tìm: [Biến] [dấu =] [Số]
+        eq_pattern = r'([a-zA-Z_]+[a-zA-Z0-9_]*)\s*=\s*([-+]?\d*\.?\d+)'
+        matches = re.findall(eq_pattern, text)
+        if matches:
+            # Lấy phương trình cuối cùng tìm được
+            var, val = matches[-1]
+            return f"{var} = {val}"
+            
+        # Pattern 2: Tìm số đứng một mình (thường là đáp án cuối)
+        # Tránh lấy số của Step (VD: "Step 7" -> đừng lấy số 7)
+        # Logic: Lấy số nằm ở cuối câu hoặc sau các từ khóa "is", "are", "result", "answer"
+        
+        # Tìm tất cả các số thực
+        num_pattern = r'[-+]?\d*\.?\d+'
+        nums = re.findall(num_pattern, text)
+        
+        if nums:
+            # Heuristic: Nếu câu bắt đầu bằng "Step N", bỏ số đầu tiên đi nếu nó là số nguyên nhỏ
+            if text.lower().startswith("step") and len(nums) > 1:
+                return nums[-1] # Lấy số cuối cùng (thường là đáp án 29)
+            return nums[-1]
+            
+        return text # Trả về nguyên gốc để Sympy tự xử lý (hy vọng)
+
     def _safe_parse(self, text):
-        """Parse text thành biểu thức Sympy một cách an toàn"""
+        """Parse text thành biểu thức Sympy một cách an toàn và mạnh mẽ hơn"""
+        if not text: return None
+        
+        # BƯỚC 1: Thử parse trực tiếp (cho trường hợp text là toán thuần: "x=29")
+        clean_text = self._clean_latex(text)
         try:
-            text = self._clean_latex(text)
-            # Xử lý dấu bằng để tạo phương trình
-            if "=" in text:
-                parts = text.split("=")
+            if "=" in clean_text:
+                parts = clean_text.split("=")
                 if len(parts) == 2:
                     lhs = parse_expr(parts[0], transformations=self.transformations)
                     rhs = parse_expr(parts[1], transformations=self.transformations)
                     return Eq(lhs, rhs)
-            return parse_expr(text, transformations=self.transformations)
+            return parse_expr(clean_text, transformations=self.transformations)
+        except:
+            pass # Thất bại thì sang bước 2
+
+        # BƯỚC 2: Fallback - Trích xuất toán từ văn bản (Cho trường hợp "The answer is 29")
+        extracted_math = self._extract_math_from_text(clean_text)
+        
+        # Nếu trích xuất ra vẫn y nguyên text cũ (không lọc được gì) mà bước 1 đã fail -> Fail
+        if extracted_math == clean_text: 
+            return None
+
+        try:
+            # Parse lại phần đã trích xuất (VD: "29" hoặc "x=29")
+            if "=" in extracted_math:
+                parts = extracted_math.split("=")
+                if len(parts) == 2:
+                    lhs = parse_expr(parts[0], transformations=self.transformations)
+                    rhs = parse_expr(parts[1], transformations=self.transformations)
+                    return Eq(lhs, rhs)
+            return parse_expr(extracted_math, transformations=self.transformations)
         except:
             return None
     
