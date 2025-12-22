@@ -264,7 +264,7 @@ class DeepMathMetrics:
                     if step.get('completions'): txt = step['completions'][idx]['text']
                 if txt:
                     parsed = self._safe_parse(txt)
-                    if parsed: golden_exprs.append(parsed)
+                    if parsed is not None: golden_exprs.append(parsed)
 
         # 3. Ground Truth Final (Đáp án cuối cùng của đề)
         gt_str = label_data['question']['ground_truth_answer']
