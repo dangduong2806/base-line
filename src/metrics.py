@@ -79,7 +79,7 @@ class DeepMathMetrics:
         So sánh đáp án cuối cùng của Model với đáp án chuẩn (Golden).
         Dùng tập nghiệm để bỏ qua sự khác biệt về tên biến.
         """
-        if not model_final_expr or not golden_final_expr:
+        if model_final_expr is None or golden_final_expr is None:
             return 0.0
         
         try:
@@ -145,6 +145,7 @@ class DeepMathMetrics:
         Transformation Step Accuracy (TSA) cho 1 bước.
         Check xem bước này có khớp với bất kỳ bước nào trong Golden Path hoặc GT cuối không.
         """
+        if step_expr is None: return False # [Safe check]
         # (Logic TSA đã tối ưu ở câu trả lời trước, dùng lại _get_solution_set)
         step_sols = self._get_solution_set(step_expr)
         
