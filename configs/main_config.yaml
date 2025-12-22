@@ -1,0 +1,38 @@
+experiment_name: "Algebra_Symbolic_Transformation_Test"
+
+model:
+  name: "meta-llama/Meta-Llama-3-8B-Instruct"
+  quantization: "4bit"
+  device_map: "auto"
+
+adaptive_sampling:
+  min_samples: 5
+  max_samples: 10
+  consistency_threshold: 0.8 # Nếu 80% mẫu giống nhau thì dừng
+  temperature: 0.5 # Tránh sáng tạo
+
+verification:
+  prm_threshold: 0.7 # Điểm số tối thiểu để một bước được coi là đúng
+  use_symbolic_check: True # Bật tính năng check bằng SymPy
+  atomic_check_enabled: True
+  logical_check_enabled: True
+  logprob_threshold: -1.5
+  atomic_check_enabled: True
+  # Check 2: Adversarial (self-correction)
+  adversarial_enabled: True
+  # Check 3: External PRM (The "New" Improvement)
+  prm_check_enbled: True 
+
+structural:
+  centrality_weight: 0.5
+
+selection:
+  entropy_threshold: 0.6
+  
+graph:
+  similarity_threshold: 0.95 # Ngưỡng để gộp 2 node vào đồ thị
+
+tool:
+  name1: "microsoft/deberta-v3-base" # Model cực giỏi NLI/Classification
+  output_dir1: "tools/prm_specialist_deberta-v3-base"
+
