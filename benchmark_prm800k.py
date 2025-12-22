@@ -74,7 +74,7 @@ def run_benchmark():
             pred = result['final_answer']
             best_path_text = result['final_path_content']
 
-            metrics = math_eval.compute_all_metrics(
+            metrics = math_eval.compute_metrics(
                 generated_path_text = best_path_text,
                 label_data = item
             )
