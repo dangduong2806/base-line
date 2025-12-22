@@ -181,6 +181,7 @@ class DeepMathMetrics:
         gen_exprs = [e for e in gen_exprs if e is not None] # Lọc cái nào parse được
         
         if not gen_exprs:
+            print(f"Không parse được bước nào từ lời giải của mô hình")
             return {"EE": 0.0, "TSA": 0.0, "ASS": 0.0}
 
         # 2. Extract Golden Path (Biểu thức chuẩn từ dữ liệu)
