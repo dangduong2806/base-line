@@ -33,15 +33,6 @@ class LocalVerifier:
         self.logical_enabled = config['verification'].get('logical_check_enabled', True)
         self.logprob_threshold = config['verification'].get('logprob_threshold', -1.5)
 
-        self.prm_enabled = config['verification'].get('prm_check_enabled', False)
-        if self.prm_enabled:
-            prm_path = config['tool'].get('output_dir1', 'name1')
-            logger.info(f"Loading PRM Specialist from {prm_path}...")
-            # Load lên cùng device với LLM hoặc device phụ
-            self.prm_tokenizer = AutoTokenizer.from_pretrained(prm_path)
-            self.prm_model = AutoModelForSequenceClassification.from_pretrained(prm_path).to("cuda")
-            self.prm_model.eval()
-
     def verify_path(self, path, problem_text = ""):
         """
         Input: 
@@ -83,25 +74,6 @@ class LocalVerifier:
                 logger.debug(f"Step {i+1} failed LOGICAL check. Score {logic_score:.4f} < {self.logprob_threshold}")
                 break # Cắt nhánh (Pruning)
             
-            is_valid_step = True
-            # 3a. Adversarial Check (Hỏi vặn)
-            if self.config['verification'].get('adversarial_enabled', False):
-                if not self._adversarial_check(current_context, step_content):
-                    logger.warning(f"Step {i+1} FAIL: Adversarial Critic rejected.")
-                    is_valid_step = False
-            # 3b. PRM Specialist Check (Model chuyên gia)
-            if is_valid_step and self.prm_enabled:
-                prm_prob = self._prm_check(current_context, step_content)
-                # Ngưỡng PRM (VD: > 0.5 là đúng)
-                if prm_prob < 0.5: 
-                    logger.warning(f"Step {i+1} FAIL: PRM Model rejected (Prob {prm_prob:.4f}).")
-                    is_valid_step = False
-
-            if not is_valid_step:
-                break
-            
-            logger.info(f"Qua được vòng kiểm tra của 2 model thành công")
-
             # Nếu qua được cả 2 vòng check thì thêm vào danh sách hợp lệ
             verified_steps.append({
                 'content': step_content,
@@ -113,40 +85,6 @@ class LocalVerifier:
             
         return verified_steps
     
-    def _adversarial_check(self, context, step_text):
-        """Dùng chính LLM để đóng vai 'Strict Grader'"""
-        prompt = (
-            f"Context:\n{context[-500:]}\n" # Lấy context gần
-            f"Step to evaluate: {step_text}\n\n"
-            "You are a strict math grader. Check for ANY calculation or logical error.\n"
-            "Is this step CORRECT? Answer only YES or NO."
-        )
-        try:
-            # Generate 1 token
-            response = self.llm.generate_short(prompt).strip().upper()
-            return "YES" in response
-        except:
-            return True
-        
-    def _prm_check(self, context, step_text):
-        """Dùng Model PRM chuyên biệt để chấm điểm"""
-        # Format input cho Cross-Encoder: [CLS] Context [SEP] Step [SEP]
-        input_text = f"{context} [SEP] {step_text}"
-        inputs = self.prm_tokenizer(
-            input_text, 
-            return_tensors="pt", 
-            truncation=True, 
-            max_length=512
-        ).to(self.prm_model.device)
-        with torch.no_grad():
-            outputs = self.prm_model(**inputs)
-            # Softmax để lấy xác suất lớp 1 (Lớp "Correct")
-            probs = torch.softmax(outputs.logits, dim=-1)
-            score_correct = probs[0][1].item()
-        
-        return score_correct
-
-
     def _check_atomic_validity(self, text):
         """
         Dùng SymPy để kiểm tra xem text có chứa biểu thức toán học hợp lệ không.
