@@ -96,7 +96,10 @@ def run_benchmark():
             }
             results.append(record)
         except Exception as e:
-            print("❌ Failed to generate a valid answer.")
+            print(f"❌ Failed to generate a valid answer for problem: {problem[:30]}...")
+            print(f"Error details: {str(e)}")
+            import traceback
+            traceback.print_exc()
             
     # 3. Aggregation (Tính trung bình)
     df = pd.DataFrame(results)
