@@ -22,21 +22,20 @@ logger = logging.getLogger(__name__)
 def load_prm800k_test_set(file_path, limit=50):
     """
     Load dataset PRM800K. 
-    File thường định dạng jsonl. Mỗi dòng là 1 json object.
+    Giữ nguyên cấu trúc JSON object để lấy thông tin Golden Path (steps, completions).
     """
 
     data = []
     with open(file_path, 'r', encoding='utf-8') as f:
         for i, line in enumerate(f):
             if i >= limit: break
-            item = json.loads(line)
-            # PRM800K format mapping (tuỳ chỉnh theo file thật bạn tải)
-            
-            question = item.get('question', {})
-            data.append({
-                'problem': question.get('problem', ''),
-                'ground_truth': question.get('ground_truth_answer', '') # Hoặc final_answer
-            })
+            try:
+                item = json.loads(line)
+                # Đảm bảo dữ liệu hợp lệ (có question và label)
+                if 'question' in item and 'label' in item:
+                    data.append(item)
+            except json.JSONDecodeError:
+                continue
     return data
 
 def run_benchmark():
@@ -53,14 +52,14 @@ def run_benchmark():
     
     # Load Data (Thay đường dẫn file thật của bạn vào đây)
     data_path = "data/raw/phase1_test.jsonl"
-    test_data = load_prm800k_test_set(data_path, limit=20) 
+    test_data = load_prm800k_test_set(data_path, limit=7) 
     
     results = []
     
     print(f"Starting benchmark on {len(test_data)} samples...")
     for item in tqdm(test_data):
-        problem = item['problem']
-        gt = item['ground_truth']
+        problem = item['question']['problem']
+        gt = item['question']['ground_truth_answer']
 
         try:
             start_time = time.time()
@@ -74,9 +73,10 @@ def run_benchmark():
 
             pred = result['final_answer']
             best_path_text = result['final_path_content']
+
             metrics = math_eval.compute_all_metrics(
-                generated_path_text= best_path_text,
-                ground_truth_value_str= gt
+                generated_path_text = best_path_text,
+                label_data = item
             )
 
             # Dù kết quả thế nào thì vẫn cứ in ra output của model
@@ -117,7 +117,3 @@ def run_benchmark():
 
 if __name__ == "__main__":
     run_benchmark()
-
-            
-
-
