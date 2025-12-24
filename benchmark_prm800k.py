@@ -72,7 +72,11 @@ def run_benchmark():
             if result is None:
                 print(f"❌ Skipping problem due to pipeline failure.")
                 # Ghi nhận là sai hoặc bỏ qua
-                metrics = {"final_score": 0.0, "ee": 0.0} 
+                metrics = {
+                    "EE": 0.0, 
+                    "ASS": 0.0,
+                    "TSA": 0.0
+                } 
                 # Lưu vào log rồi continue sang câu tiếp theo
                 continue
 
@@ -80,7 +84,6 @@ def run_benchmark():
             peak_memory = torch.cuda.max_memory_allocated() / (1024 ** 2) # MB
 
             # 2. --- QUAN TRỌNG: DỌN DẸP BỘ NHỚ SAU MỖI CÂU ---
-            del result # Xóa biến kết quả
             gc.collect() # Dọn rác RAM CPU
             torch.cuda.empty_cache() # Dọn rác VRAM GPU
 
@@ -108,7 +111,6 @@ def run_benchmark():
                 "MF": peak_memory
             }
             results.append(record)
-
         except Exception as e:
             print(f"❌ Failed to generate a valid answer for problem: {problem[:30]}...")
             print(f"Error details: {str(e)}")
