@@ -109,7 +109,7 @@ class ResearchPipeline:
 
         if not verified_paths:
             logger.warning("!!! No valid paths found. Pipeline aborted.")
-            return None
+            return None, sample_count
         else:
             logger.info(f"Verified steps: {verified_paths}")
 
