@@ -55,7 +55,35 @@ class StructuralVerifier:
         # Các node được nhiều luồng suy luận đi qua sẽ có PageRank cao.
         try:
             # weight='weight' nghĩa là cạnh nào lặp lại nhiều lần (được vote nhiều) sẽ quan trọng hơn
-            centrality_scores = nx.pagerank(graph, weight='weight', alpha=0.85)
+            # centrality_scores = nx.pagerank(graph, weight='weight', alpha=0.85)
+            
+            # ✅ FIX: Dùng personalization dựa trên CONFIDENCE của node
+            # Thay vì weight='weight' (chỉ là số lần lặp)
+            # → Dùng personalization để ưu tiên node có confidence cao
+            
+            # Tính personalization vector từ node confidence
+            personalization = {}
+            total_conf_all = 0
+            
+            for node in graph.nodes():
+                node_data = graph.nodes[node]
+                count = node_data.get('count', 1)
+                total_conf = node_data.get('total_confidence', 0.0)
+                avg_conf = total_conf / count if count > 0 else 0.0
+                personalization[node] = avg_conf
+                total_conf_all += avg_conf
+            
+            # Chuẩn hóa personalization vector [0, 1]
+            if total_conf_all > 0:
+                personalization = {k: v / total_conf_all for k, v in personalization.items()}
+            
+            # PageRank với personalization dựa trên confidence
+            centrality_scores = nx.pagerank(
+                graph, 
+                personalization=personalization,
+                alpha=0.85,
+                weight=None  # ✅ Bỏ weight để PageRank tập trung vào personalization
+            )
         except Exception as e:
             # Fallback nếu graph quá nhỏ hoặc lỗi hội tụ -> Dùng Degree Centrality đơn giản
             centrality_scores = nx.degree_centrality(graph)
