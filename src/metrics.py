@@ -188,7 +188,18 @@ class DeepMathMetrics:
             if expr is None: return 0.0
             
             # Nếu là phương trình Eq(L, R), chuyển thành biểu thức L-R để đo độ phức tạp
-            target_expr = (expr.lhs - expr.rhs) if isinstance(expr, Eq) else expr
+            # target_expr = (expr.lhs - expr.rhs) if isinstance(expr, Eq) else expr
+            # Mặc định target_expr là chính expr
+            target_expr = expr
+            
+            if isinstance(expr, Eq):
+                try:
+                    # Cố gắng chuyển về dạng biểu thức (LHS - RHS)
+                    target_expr = expr.lhs - expr.rhs
+                except TypeError:
+                    # Nếu gặp lỗi trừ Tuple (ví dụ: x = (1, 2)), 
+                    # Python không trừ được, ta giữ nguyên expr để count_ops
+                    target_expr = expr
             
             # Tính độ phức tạp hiện tại
             ops_generated = count_ops(target_expr)
