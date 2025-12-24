@@ -2,6 +2,7 @@ import sympy
 from sympy.parsing.sympy_parser import parse_expr, standard_transformations, implicit_multiplication_application
 from sympy import Eq, simplify, count_ops, Symbol, Number, Float, Integer, solve
 import re
+import difflib
 
 class DeepMathMetrics:
     def __init__(self):
@@ -384,6 +385,13 @@ class DeepMathMetrics:
                             if abs(float(s) - float(t)) < 1e-8:
                                 return True # Có khớp
                         except: pass
+        
+        for target in all_targets:
+            matcher = difflib.SequenceMatcher(None, step_expr.lower(), target.lower())
+            similarity = matcher.ratio() # Trả về từ 0.0 đến 1.0
+            if similarity >= 0.82: # Ngưỡng 82% giống nhau
+                return True
+            
         return False
     
     # --------------------------------------------------------------------------
@@ -429,8 +437,8 @@ class DeepMathMetrics:
         # 1. EE (Expression Equivalence) - Chỉ tính trên bước cuối cùng của Model
         # So sánh bước cuối model vs (Golden Final Step HOẶC GT Final)
         model_final = gen_exprs[-1]
-        golden_final = golden_exprs[-1] if golden_exprs else gt_final_expr
-        
+        # golden_final = golden_exprs[-1] if golden_exprs else gt_final_expr
+        golden_final = gt_final_expr
         ee_score = self._calculate_ee(model_final, golden_final)
 
         # 2. TSA (Transformation Step Accuracy) - Tính trên từng bước
