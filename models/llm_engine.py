@@ -37,7 +37,7 @@ class LLMEngine:
         with torch.no_grad():
             outputs = self.model.generate(
                 **inputs,
-                max_new_tokens=512,         # Độ dài tối đa của câu trả lời
+                max_new_tokens=1024,         # Độ dài tối đa của câu trả lời
                 do_sample=True,             # Bắt buộc True để sinh đa dạng (cho Adaptive Sampling)
                 temperature=temperature,
                 top_k=40,                   # Lấy top 40 token tốt nhất
