@@ -67,7 +67,6 @@ class ResearchPipeline:
             "     * Fraction: \\boxed{\\frac{1997}{2}}\n"
             "     * Symbolic: \\boxed{\\frac{\\pi^2}{8}}\n"
             "5. Do not output anything else (like conversational filler). Just the steps and the boxed answer.\n"
-            "6. Check constraints carefully at the end."
         )
         
         # User prompt chứa bài toán
