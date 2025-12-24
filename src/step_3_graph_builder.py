@@ -119,7 +119,7 @@ class IsomorphismEngine:
         common_words = set(["the", "and", "for", "with", "that", "this", "have", "from", "boys", "girls", "ways", "seats"])
         # Nếu câu chứa từ ngữ văn xuôi thông thường -> Return None ngay để đỡ tốn thời gian parse
         if any(w in common_words for w in words):
-             return None
+            return None
         
         try:
             # Xử lý các ký hiệu LaTeX cơ bản thường gặp
