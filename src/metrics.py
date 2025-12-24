@@ -377,6 +377,21 @@ class DeepMathMetrics:
         all_targets = golden_exprs + [gt_final_expr]
         
         for target in all_targets:
+            # --- LỚP 1: Check Đại số (Algebraic Equivalence) ---
+            try:
+                # Chuyển về biểu thức (LHS - RHS) để trừ nhau
+                e1 = (step_expr.lhs - step_expr.rhs) if isinstance(step_expr, Eq) else step_expr
+                e2 = (target.lhs - target.rhs) if isinstance(target, Eq) else target
+                
+                # Kiểm tra hiệu số
+                diff = simplify(e1 - e2)
+                if diff == 0: return True
+                
+                # Kiểm tra tổng (trường hợp đổi dấu: x-5 vs 5-x)
+                if simplify(e1 + e2) == 0: return True
+            except: 
+                pass
+
             target_sols = self._get_solution_set(target)
             if step_sols and target_sols:
                  for s in step_sols:
@@ -385,12 +400,21 @@ class DeepMathMetrics:
                             if abs(float(s) - float(t)) < 1e-8:
                                 return True # Có khớp
                         except: pass
-        
-        for target in all_targets:
-            matcher = difflib.SequenceMatcher(None, step_expr.lower(), target.lower())
-            similarity = matcher.ratio() # Trả về từ 0.0 đến 1.0
-            if similarity >= 0.82: # Ngưỡng 82% giống nhau
-                return True
+            # --- LỚP 3: Check Chuỗi Fuzzy (FIX LỖI CRASH TẠI ĐÂY) ---
+            try:
+                # QUAN TRỌNG: Phải ép kiểu về str() trước khi gọi .lower()
+                # SymPy object như Integer(1) không có hàm .lower()
+                str_step = str(step_expr)
+                str_target = str(target)
+                
+                # So sánh chuỗi (bỏ qua khoảng trắng thừa)
+                matcher = difflib.SequenceMatcher(None, str_step.strip().lower(), str_target.strip().lower())
+                
+                # Nếu giống nhau trên 82% (ví dụ khác tên biến x/y) -> Chấp nhận
+                if matcher.ratio() > 0.82: 
+                    return True
+            except: 
+                pass
             
         return False
     
