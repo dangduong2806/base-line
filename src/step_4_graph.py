@@ -44,16 +44,33 @@ class ReasoningGraph:
                 # 2. Kiểm tra xem bước này đã tồn tại trong đám con chưa (Isomorphism Check)
                 matched_node_id = self.get_equivalent_node(step_content, children_ids)
 
+                # 2. Nếu không tìm thấy con, kiểm tra TOÀN BỘ GRAPH (để gộp node từ branch khác)
+                if not matched_node_id:
+                    for node_id in self.graph.nodes():
+                        if node_id != "ROOT":
+                            existing_content = self.graph.nodes[node_id]['content']
+                            if self.iso_engine.are_equivalent(existing_content, step_content):
+                                matched_node_id = node_id
+                                break
+
                 if matched_node_id:
                     # --- NODE MERGING (Gộp node) ---
                     # Nếu đã có, tăng trọng số (Count) và cập nhật confidence
+                    if self.graph.nodes[matched_node_id].get('count') is None:
+                        self.graph.nodes[matched_node_id]['count'] = 0
                     self.graph.nodes[matched_node_id]['count'] += 1
                     # Cộng dồn confidence để tính trung bình sau này
+                    if self.graph.nodes[matched_node_id].get('total_confidence') is None:
+                        self.graph.nodes[matched_node_id]['total_confidence'] = 0
                     self.graph.nodes[matched_node_id]['total_confidence'] += step_conf # xác suất
 
                     # Cập nhật trọng số cạnh
                     if self.graph.has_edge(current_parent_id, matched_node_id):
-                        self.graph[current_parent_id][matched_node_id]['weight'] += 1
+                        current_weight = self.graph[current_parent_id][matched_node_id].get('weight', 1)
+                        self.graph[current_parent_id][matched_node_id]['weight'] = current_weight + 1
+                    else:
+                        # Nếu cạnh chưa tồn tại, tạo cạnh mới
+                        self.graph.add_edge(current_parent_id, matched_node_id, weight=1)
                     current_parent_id = matched_node_id # đi tiếp xuống dưới
                 else:
                     # Thêm node mới
