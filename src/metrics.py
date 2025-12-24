@@ -151,7 +151,7 @@ class DeepMathMetrics:
                 for m in model_sols:
                     for g in golden_sols:
                         try:
-                            if abs(float(m) - float(g)) < 1e-7:
+                            if abs(float(m) - float(g)) < 1e-6:
                                 matched = True; break
                         except: pass
                     if matched: break
@@ -460,10 +460,22 @@ class DeepMathMetrics:
 
         # 1. EE (Expression Equivalence) - Chỉ tính trên bước cuối cùng của Model
         # So sánh bước cuối model vs (Golden Final Step HOẶC GT Final)
-        model_final = gen_exprs[-1]
+        # model_final = gen_exprs[-1]
+
+        model_final = None
+        if gen_exprs:
+            # Lặp ngược từ dưới lên để tìm công thức hợp lệ gần nhất
+            for expr in reversed(gen_exprs):
+                if expr is not None:
+                    model_final = expr
+                    break
+
         # golden_final = golden_exprs[-1] if golden_exprs else gt_final_expr
         golden_final = gt_final_expr
-        ee_score = self._calculate_ee(model_final, golden_final)
+        if model_final is not None:
+            ee_score = self._calculate_ee(model_final, golden_final)
+        else: 
+            ee_score = 0.0
 
         # 2. TSA (Transformation Step Accuracy) - Tính trên từng bước
         tsa_hits = 0
