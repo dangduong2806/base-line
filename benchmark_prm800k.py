@@ -53,7 +53,7 @@ def run_benchmark():
     
     # Load Data (Thay đường dẫn file thật của bạn vào đây)
     data_path = "data/raw/test_subset.jsonl"
-    test_data = load_prm800k_test_set(data_path) 
+    test_data = load_prm800k_test_set(data_path, limit=18) 
     
     results = []
     
