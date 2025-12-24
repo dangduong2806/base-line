@@ -52,8 +52,8 @@ class AdaptiveSampler:
                 consistency_score = count / len(valid_answers)
             
             # b. Kiểm tra điều kiện dừng (Stopping Criterion)
-            if consistency_score > self.threshold:
-                print(f"   [Sampler] Consistency {consistency_score:.2f} > {self.threshold}, stopping at k={current_k}.")
+            if consistency_score >= self.threshold:
+                print(f"   [Sampler] Consistency {consistency_score:.2f} >= {self.threshold}, stopping at k={current_k}.")
                 break
             
             # c. Nếu chưa đạt, sinh thêm (Incremental Sampling)
@@ -98,35 +98,85 @@ class AdaptiveSampler:
             })
         return steps
 
+    # def extract_answer(self, text):
+    #     """
+    #     Helper: Trích xuất đáp án cuối cùng.
+    #     Ưu tiên định dạng \boxed{}, sau đó đến số cuối cùng.
+    #     """
+    #     if not text:
+    #         return None
+        
+    #     # 1. Chuẩn nhất: Tìm \boxed{ans} (Dữ liệu toán học thường dùng cái này)
+    #     match = re.search(r'\\boxed\{(.*?)\}', text)
+    #     if match:
+    #         return self._normalize_answer(match.group(1))
+        
+    #     # 2. Fallback: Tìm "The answer is..."
+    #     match = re.search(r'(?:answer|result) is\s*([0-9a-zA-Z\+\-\*\^\.]+)', text, re.IGNORECASE)
+    #     if match:
+    #         return self._normalize_answer(match.group(1))
+        
+    #     # 3. Fallback cuối cùng: Lấy cụm số/biểu thức cuối cùng của chuỗi
+    #     lines = text.strip().split('\n')
+    #     if lines:
+    #         last_line = lines[-1]
+    #         # Tìm cụm ký tự toán học ở cuối dòng
+    #         last_math = re.search(r'([0-9x\+\-\*\^]+)$', last_line)
+    #         if last_math:
+    #             return self._normalize_answer(last_math.group(1))
+        
+    #     return None
+
     def extract_answer(self, text):
         """
         Helper: Trích xuất đáp án cuối cùng.
-        Ưu tiên định dạng \boxed{}, sau đó đến số cuối cùng.
+        Ưu tiên: \boxed{} → "The answer is" → Biểu thức cuối cùng
         """
         if not text:
             return None
         
-        # 1. Chuẩn nhất: Tìm \boxed{ans} (Dữ liệu toán học thường dùng cái này)
-        match = re.search(r'\\boxed\{(.*?)\}', text)
+        # 1. Tìm \boxed{ans} (Dữ liệu toán học)
+        match = re.search(r'\\boxed\{(.+?)\}', text)  # ← Sửa regex
         if match:
             return self._normalize_answer(match.group(1))
         
-        # 2. Fallback: Tìm "The answer is..."
-        match = re.search(r'(?:answer|result) is\s*([0-9a-zA-Z\+\-\*\^\.]+)', text, re.IGNORECASE)
+        # 2. Tìm "The answer is X" hoặc "answer: X"
+        match = re.search(
+            r'(?:the\s+)?(?:answer|result|solution)\s*(?:is|:)?\s*([^\n]+)',
+            text,
+            re.IGNORECASE
+        )
         if match:
-            return self._normalize_answer(match.group(1))
+            ans = match.group(1).strip()
+            return self._normalize_answer(ans)
         
-        # 3. Fallback cuối cùng: Lấy cụm số/biểu thức cuối cùng của chuỗi
-        lines = text.strip().split('\n')
+        # 3. Lấy dòng cuối cùng (có chứa số hoặc ký tự toán học)
+        lines = [l.strip() for l in text.strip().split('\n') if l.strip()]
         if lines:
-            last_line = lines[-1]
-            # Tìm cụm ký tự toán học ở cuối dòng
-            last_math = re.search(r'([0-9x\+\-\*\^]+)$', last_line)
-            if last_math:
-                return self._normalize_answer(last_math.group(1))
+            for line in reversed(lines):  # ← Tìm từ cuối lên
+                # Loại bỏ các dòng là câu hoàn chỉnh
+                if any(x in line.lower() for x in ["step", "therefore", "so", "thus"]):
+                    continue
+                
+                # Tìm cụm toán học ở cuối dòng
+                math_expr = re.search(r'([x\d\+\-\*\^\/\.=]+)$', line)
+                if math_expr:
+                    return self._normalize_answer(math_expr.group(1))
         
         return None
 
     def _normalize_answer(self, ans_text):
-        """Làm sạch đáp án để so sánh chuỗi chính xác hơn"""
-        return ans_text.strip().lower().replace(" ", "")
+        """Làm sạch đáp án"""
+        if not ans_text:
+            return None
+        
+        ans = ans_text.strip().lower().replace(" ", "")
+        
+        # ✅ FIX: Loại bỏ ký tự không phải toán học
+        ans = re.sub(r'[^\w\+\-\*\^\/\=\.]', '', ans)
+        
+        return ans if ans else None
+
+    # def _normalize_answer(self, ans_text):
+    #     """Làm sạch đáp án để so sánh chuỗi chính xác hơn"""
+    #     return ans_text.strip().lower().replace(" ", "")
