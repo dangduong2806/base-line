@@ -6,9 +6,9 @@ model:
   device_map: "auto"
 
 adaptive_sampling:
-  min_samples: 5
-  max_samples: 10
-  consistency_threshold: 0.8 # Nếu 80% mẫu giống nhau thì dừng
+  min_samples: 4
+  max_samples: 7
+  consistency_threshold: 0.69 # Nếu 80% mẫu giống nhau thì dừng
   temperature: 0.5 # Tránh sáng tạo
 
 verification:
