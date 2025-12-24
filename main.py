@@ -56,7 +56,17 @@ class ResearchPipeline:
             "2. Start each step with 'Step k:' (e.g., 'Step 1:', 'Step 2:').\n"
             "3. State the mathematical expression clearly in each step.\n"
             "4. The final answer must be boxed using LaTeX format: \\boxed{answer}.\n"
-            "5. Do not output anything else (like conversational filler)."
+            "   - **CONTENT RULE**: Put ONLY the final value (number, fraction, or symbolic constant) inside the box.\n"
+            "   - **NEGATIVE CONSTRAINTS** (DO NOT DO THIS):\n"
+            "     * DO NOT include units or currency symbols (e.g., NO \\boxed{$27}, NO \\boxed{27 kg}).\n"
+            "     * DO NOT add extra backslashes before numbers (e.g., NO \\boxed{\\27}).\n"
+            "     * DO NOT double box (e.g., NO \\boxed{\\boxed{27}}).\n"
+            "   - **EXAMPLES OF CORRECT FORMAT**:\n"
+            "     * Integer: \\boxed{27}\n"
+            "     * Decimal: \\boxed{998.5}\n"
+            "     * Fraction: \\boxed{\\frac{1997}{2}}\n"
+            "     * Symbolic: \\boxed{\\frac{\\pi^2}{8}}\n"
+            "5. Do not output anything else (like conversational filler). Just the steps and the boxed answer."
         )
         
         # User prompt chứa bài toán
